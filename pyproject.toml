@@ -1,10 +1,11 @@
 [project]
 name = "mcp-playground"
 version = "0.1.0"
-description = "Add your description here"
+description = "Simple client-server MCP playground."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "langchain>=0.3.27",
     "langchain-google-genai>=2.1.8",
     "langchain-mcp-adapters>=0.1.9",
     "langgraph>=0.5.4",

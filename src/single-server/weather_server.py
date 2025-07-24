@@ -2,10 +2,9 @@ import os
 import requests
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
-from pydantic import SecretStr
 
 load_dotenv()
-OPENWEATHERMAP_API_KEY = SecretStr(os.getenv("OPENWEATHER_API_KEY"))
+OPENWEATHERMAP_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
 # Initialize the FastMCP server
 mcp = FastMCP("WeatherAssistant")

@@ -17,7 +17,7 @@ from langchain_mcp_adapters.tools import load_mcp_tools
 # MCP server launch config
 server_params = StdioServerParameters(
     command="python",
-    args=["weather_server.py"]
+    args=["src/single-server/weather_server.py"]
 )
 
 # LangGraph state definition
@@ -30,7 +30,7 @@ async def create_graph(session):
     tools = await load_mcp_tools(session)
 
     # LLM configuration 
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)  # api key read in from .env
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
     llm_with_tools = llm.bind_tools(tools)
 
     # Prompt template with user/assistant chat only
