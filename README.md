@@ -25,3 +25,44 @@ In the MCP context, the client serves as a two-way street between the AI model a
 containing the requested content. The MCP server is the substrate on which we can define resources in a common-language that our AI model(s) can utilize.
 In this repo, the [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) allows for the creation of tools, resources, and prompts that
 can be consumed by AI model.
+
+#### Tools
+
+Tools are for **action**. They are executable functions that the agent calls to interact with the world.
+
+#### Prompts
+
+Prompts are for **guidance**. They are user-initiated templates that orchestrate a complex reasoning workflow for the LLM.
+
+#### Resources
+
+Resources are for **context**. They are passive, read-only data sources the agent consults to become informed before acting.
+
+## Usage
+
+### `src/single-server`
+
+Copy the environment template file into a local .env file, source that file:
+
+```bash
+cp .env.tmpl .env
+source .env
+```
+
+Run the mcp client for the single-server demonstrator using python:
+
+```bash
+python src/single-server/mcp_client
+```
+
+You should expect to see an output like:
+
+```bash
+[07/24/25 13:29:19] INFO     Processing request of type ListToolsRequest                                                                                                                                                           server.py:625
+Weather MCP agent is ready.
+Type a question, or use one of the following commands:
+  /prompts                           - to list available prompts
+  /prompt <prompt_name> "args"...  - to run a specific prompt
+  /resources                       - to list available resources
+  /resource <resource_uri>         - to load a resource for the agent
+```

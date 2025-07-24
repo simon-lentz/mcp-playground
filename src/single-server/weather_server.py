@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import requests
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
@@ -8,6 +9,7 @@ OPENWEATHERMAP_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
 # Initialize the FastMCP server
 mcp = FastMCP("WeatherAssistant")
+
 
 @mcp.tool()
 def get_weather(location: str) -> dict:
@@ -27,7 +29,7 @@ def get_weather(location: str) -> dict:
     params = {
         "q": location,
         "appid": OPENWEATHERMAP_API_KEY,
-        "units": "metric"  # Use "imperial" for Fahrenheit
+        "units": "metric",  # Use "imperial" for Fahrenheit
     }
 
     try:
@@ -49,14 +51,18 @@ def get_weather(location: str) -> dict:
             "temperature_celsius": f"{temperature}°C",
             "feels_like_celsius": f"{feels_like}°C",
             "humidity": f"{humidity}%",
-            "wind_speed_mps": f"{wind_speed} m/s"
+            "wind_speed_mps": f"{wind_speed} m/s",
         }
 
     except requests.exceptions.HTTPError as http_err:
         if response.status_code == 404:
-            return {"error": f"Could not find weather data for '{location}'. Please check the location name."}
+            return {
+                "error": f"Could not find weather data for '{location}'. Please check the location name."
+            }
         elif response.status_code == 401:
-            return {"error": "Authentication failed. The API key is likely invalid or inactive."}
+            return {
+                "error": "Authentication failed. The API key is likely invalid or inactive."
+            }
         else:
             return {"error": f"An HTTP error occurred: {http_err}"}
     except requests.exceptions.RequestException as req_err:
@@ -65,6 +71,49 @@ def get_weather(location: str) -> dict:
         return {"error": "Received unexpected data format from the weather API."}
     except Exception as e:
         return {"error": f"An unexpected error occurred: {e}"}
+
+
+@mcp.prompt()
+def compare_weather_prompt(location_a: str, location_b: str) -> str:
+    """
+    Generates a clear, comparative summary of the weather between two specified locations.
+    This is the best choice when a user asks to compare, contrast, or see the difference in weather between two places.
+
+    Args:
+        location_a: The first city for comparison (e.g., "London").
+        location_b: The second city for comparison (e.g., "Paris").
+    """
+    return f"""
+    You are acting as a helpful weather analyst. Your goal is to provide a clear and easy-to-read comparison of the weather in two different locations for a user.
+
+    The user wants to compare the weather between "{location_a}" and "{location_b}".
+
+    To accomplish this, follow these steps:
+    1.  First, gather the necessary weather data for both "{location_a}" and "{location_b}".
+    2.  Once you have the weather data for both locations, DO NOT simply list the raw results.
+    3.  Instead, synthesize the information into a concise summary. Your final response should highlight the key differences, focusing on temperature, the general conditions (e.g., 'sunny' vs 'rainy'), and wind speed.
+    4.  Present the comparison in a structured format, like a markdown table or a clear bulleted list, to make it easy for the user to understand at a glance.
+    """
+
+
+@mcp.resource("file://delivery_log")
+def delivery_log_resource() -> list[str]:
+    """
+    Reads a delivery log file and returns its contents as a list of lines.
+    Each line contains an order number and a delivery location.
+    """
+    try:
+        log_file = Path(Path.cwd() / "src/single-server/resources/delivery_log.txt")
+        if not log_file.exists():
+            return ["Error: The delivery_log.txt file was not found on the server."]
+
+        # Read the file, remove leading/trailing whitespace, and split into lines
+        return log_file.read_text(encoding="utf-8").strip().splitlines()
+
+    except Exception as e:
+        return [
+            f"An unexpected error occurred while reading the delivery log: {str(e)}"
+        ]
 
 
 if __name__ == "__main__":
