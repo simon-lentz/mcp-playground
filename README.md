@@ -12,4 +12,16 @@ a few of recent strategies highlighted in research work and 'production' integra
 By design, a 'static' model lacks the agency needed to execute on the content it generates. Presently, that is the responsibility of the user.
 How can we move from a passive static model to something with greater capacity to *do*?
 
-### Dynamic Agents
+### Dynamic Agents and the MCP
+
+Enter the agentic model. In November 2024, Anthropic introduced the [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol). MCP is,
+in Anthropic's words, "an open protocol that enables seamless integration between LLM applications and external data sources and tools." MCP leverages
+the familar client-server architecture to standardize the communication between the generative model and the outside world.
+
+* **Client** - traditionally, this would be a web browser or something similar that resides on a user's computer and serves requests on their behalf.
+In the MCP context, the client serves as a two-way street between the AI model and the resources that we make available for request to the AI model.
+
+* **Server** - in the internet client-server model a server typically stores files until they are requested by a client, at which point it sends a response
+containing the requested content. The MCP server is the substrate on which we can define resources in a common-language that our AI model(s) can utilize.
+In this repo, the [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) allows for the creation of tools, resources, and prompts that
+can be consumed by AI model.
