@@ -2,18 +2,22 @@ import asyncio
 import shlex
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from mcp.types import TextContent
 
+from langchain_core.messages import AnyMessage
 from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import AnyMessage, add_messages
+from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import tools_condition, ToolNode
-from typing import Annotated, List
+from typing import Annotated, Any, List
 from typing_extensions import TypedDict
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-from langchain_mcp_adapters.tools import load_mcp_tools
+from langchain_mcp_adapters.tools import load_mcp_tools  # type: ignore[import-untyped]
+
+from pydantic.networks import AnyUrl
 
 # MCP server launch config
 server_params = StdioServerParameters(
@@ -25,8 +29,9 @@ server_params = StdioServerParameters(
 class State(TypedDict):
     messages: Annotated[List[AnyMessage], add_messages]
 
-
-async def create_graph(session):
+# Should be returning a langgraph.graph.state.CompiledStateGraph 
+# but it's a hassle to get mypy to accept it; for now we just use Any
+async def create_graph(session: ClientSession) -> Any:
     # Load tools from MCP server
     tools = await load_mcp_tools(session)
 
@@ -49,7 +54,7 @@ async def create_graph(session):
 
     # Define chat node
     def chat_node(state: State) -> State:
-        state["messages"] = chat_llm.invoke({"messages": state["messages"]})
+        state["messages"] = chat_llm.invoke({"messages": state["messages"]}) # type: ignore[typeddict-item]
         return state
 
     # Build LangGraph with tool routing
@@ -65,7 +70,7 @@ async def create_graph(session):
     return graph.compile(checkpointer=MemorySaver())
 
 
-async def list_prompts(session):
+async def list_prompts(session: ClientSession) -> None:
     """
     Fetches the list of available prompts from the connected server
     and prints them in a user-friendly format.
@@ -94,7 +99,7 @@ async def list_prompts(session):
         print(f"Error fetching prompts: {e}")
 
 
-async def handle_prompt(session, command: str) -> str | None:
+async def handle_prompt(session: ClientSession, command: str) -> str | None:
     """
     Parses a user command to invoke a specific prompt from the server,
     then returns the generated prompt text.
@@ -123,6 +128,13 @@ async def handle_prompt(session, command: str) -> str | None:
             print(f"\nError: Prompt '{prompt_name}' not found on the server.")
             return None
 
+        # Check if the prompt has any arguments
+        if not prompt_def.arguments:
+            print(
+                f"\nError: The prompt '{prompt_name}' does not accept any arguments."
+            )
+            return None
+
         # Check if the number of user-provided arguments matches what the prompt expects
         if len(user_args) != len(prompt_def.arguments):
             expected_args = [arg.name for arg in prompt_def.arguments]
@@ -138,6 +150,12 @@ async def handle_prompt(session, command: str) -> str | None:
         # Fetch the prompt from the server using the validated name and arguments
         prompt_response = await session.get_prompt(prompt_name, arg_dict)
 
+        # Check response content type
+        if not isinstance(prompt_response.messages[0].content, TextContent):
+            print(f"Error: Unexpected content type: {prompt_response.messages[0].content.type}")
+            print("Expected a TextContent object.")
+            return None
+
         # Extract the text content from the response
         prompt_text = prompt_response.messages[0].content.text
 
@@ -149,7 +167,8 @@ async def handle_prompt(session, command: str) -> str | None:
         print(f"\nAn error occurred during prompt invocation: {e}")
         return None
 
-async def list_resources(session):
+
+async def list_resources(session: ClientSession) -> None:
     """
     Fetches the list of available resources from the connected server
     and prints them in a user-friendly format.
@@ -169,14 +188,15 @@ async def list_resources(session):
             # The description comes from the resource function's docstring
             if r.description:
                 print(f"    Description: {r.description.strip()}")
-        
+
         print("\nUsage: /resource <resource_uri>")
         print("--------------------")
 
     except Exception as e:
         print(f"Error fetching resources: {e}")
 
-async def handle_resource(session, command: str) -> str | None:
+
+async def handle_resource(session: ClientSession, command: str) -> str | None:
     """
     Parses a user command to fetch a specific resource from the server
     and returns its content as a single string.
@@ -188,7 +208,7 @@ async def handle_resource(session, command: str) -> str | None:
             print("\nUsage: /resource <resource_uri>")
             return None
 
-        resource_uri = parts[1]
+        resource_uri = AnyUrl(parts[1])
 
         print(f"\n--- Fetching resource '{resource_uri}'... ---")
 
@@ -204,13 +224,13 @@ async def handle_resource(session, command: str) -> str | None:
         text_parts = [
             content.text for content in response.contents if hasattr(content, "text")
         ]
-        
+
         if not text_parts:
-             print("Error: Resource content is not in a readable text format.")
-             return None
+            print("Error: Resource content is not in a readable text format.")
+            return None
 
         resource_content = "\n".join(text_parts)
-        
+
         print("--- Resource loaded successfully. ---")
         return resource_content
 
@@ -218,8 +238,9 @@ async def handle_resource(session, command: str) -> str | None:
         print(f"\nAn error occurred while fetching the resource: {e}")
         return None
 
+
 # Entry point
-async def main():
+async def main() -> None:
     async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
@@ -229,14 +250,16 @@ async def main():
             # Add instructions for the new prompt commands
             print("Type a question, or use one of the following commands:")
             print("  /prompts                           - to list available prompts")
-            print("  /prompt <prompt_name> \"args\"...  - to run a specific prompt")
+            print('  /prompt <prompt_name> "args"...  - to run a specific prompt')
             print("  /resources                       - to list available resources")
-            print("  /resource <resource_uri>         - to load a resource for the agent")
+            print(
+                "  /resource <resource_uri>         - to load a resource for the agent"
+            )
 
             while True:
                 # This variable will hold the final message to be sent to the agent
                 message_to_agent = ""
-                
+
                 user_input = input("\nYou: ").strip()
                 if user_input.lower() in {"exit", "quit", "q"}:
                     break
@@ -244,7 +267,7 @@ async def main():
                 # --- Command Handling Logic ---
                 if user_input.lower() == "/prompts":
                     await list_prompts(session)
-                    continue # Command is done, loop back for next input
+                    continue  # Command is done, loop back for next input
 
                 elif user_input.startswith("/prompt"):
                     # The handle_prompt function now returns the prompt text or None
@@ -257,7 +280,7 @@ async def main():
 
                 elif user_input.lower() == "/resources":
                     await list_resources(session)
-                    continue # Command is done, loop back for next input
+                    continue  # Command is done, loop back for next input
 
                 elif user_input.startswith("/resource"):
                     # Fetch the resource content using our new function
@@ -265,8 +288,10 @@ async def main():
 
                     if resource_content:
                         # Ask the user what action to take on the loaded content
-                        action_prompt = input("Resource loaded. What should I do with this content? (Press Enter to just save to context)\n> ").strip()
-                        
+                        action_prompt = input(
+                            "Resource loaded. What should I do with this content? (Press Enter to just save to context)\n> "
+                        ).strip()
+
                         # If user provides an action, combine it with the resource content
                         if action_prompt:
                             message_to_agent = f"""
@@ -278,7 +303,9 @@ async def main():
                             """
                         # If user provides no action, create a default message to save the context
                         else:
-                            print("No action specified. Adding resource content to conversation memory...")
+                            print(
+                                "No action specified. Adding resource content to conversation memory..."
+                            )
                             message_to_agent = f"""
                             Please remember the following context for our conversation. Just acknowledge that you have received it.
                             ---
@@ -289,7 +316,7 @@ async def main():
                     else:
                         # If resource loading failed, loop back for next input
                         continue
-                
+
                 else:
                     # For a normal chat message, the message is just the user's input
                     message_to_agent = user_input
@@ -301,11 +328,12 @@ async def main():
                         # LangGraph expects a list of messages
                         response = await agent.ainvoke(
                             {"messages": [("user", message_to_agent)]},
-                            config={"configurable": {"thread_id": "weather-session"}}
+                            config={"configurable": {"thread_id": "weather-session"}},
                         )
                         print("AI:", response["messages"][-1].content)
                     except Exception as e:
                         print("Error:", e)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

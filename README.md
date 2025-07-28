@@ -52,7 +52,7 @@ source .env
 Run the mcp client for the single-server demonstrator using python:
 
 ```bash
-python src/single-server/mcp_client
+python src/single-server/mcp_client.py
 ```
 
 You should expect to see an output like:
@@ -61,8 +61,8 @@ You should expect to see an output like:
 [07/24/25 13:29:19] INFO     Processing request of type ListToolsRequest                                                                                                                                                           server.py:625
 Weather MCP agent is ready.
 Type a question, or use one of the following commands:
-  /prompts                           - to list available prompts
-  /prompt <prompt_name> "args"...  - to run a specific prompt
-  /resources                       - to list available resources
-  /resource <resource_uri>         - to load a resource for the agent
+  /prompts                              - to list available prompts
+  /prompt    <prompt_name> "args"...  - to run a specific prompt
+  /resources                            - to list available resources
+  /resource  <resource_uri>           - to load a resource for the agent
 ```

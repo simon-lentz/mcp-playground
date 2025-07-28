@@ -12,7 +12,7 @@ mcp = FastMCP("WeatherAssistant")
 
 
 @mcp.tool()
-def get_weather(location: str) -> dict:
+def get_weather(location: str) -> dict[str, str]:
     """
     Fetches the current weather for a specified location using the OpenWeatherMap API.
 
@@ -46,8 +46,8 @@ def get_weather(location: str) -> dict:
         wind_speed = data["wind"]["speed"]
 
         return {
-            "location": data["name"],
-            "weather": weather_description,
+            "location": str(data["name"]),
+            "weather": str(weather_description),
             "temperature_celsius": f"{temperature}°C",
             "feels_like_celsius": f"{feels_like}°C",
             "humidity": f"{humidity}%",
