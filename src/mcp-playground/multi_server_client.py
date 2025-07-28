@@ -1,3 +1,4 @@
+
 import asyncio
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import AnyMessage, add_messages
@@ -35,7 +36,7 @@ class State(TypedDict):
 # --- 'create_graph' now accepts the list of tools directly ---
 def create_graph(tools: list):
     # LLM configuration (remains the same)
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0, google_api_key="AIzaSyDTKqvSTW2k45qH09r2ZdDvkd2_3xM-hwY" )
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0 )
     llm_with_tools = llm.bind_tools(tools)
 
     # --- Updated system prompt to reflect new capabilities ---
