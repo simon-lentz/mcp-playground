@@ -21,7 +21,7 @@ from pydantic.networks import AnyUrl
 
 # MCP server launch config
 server_params = StdioServerParameters(
-    command="python", args=["src/single-server/weather_server.py"]
+    command="python", args=["src/mcp_playground/weather_server.py"]
 )
 
 
