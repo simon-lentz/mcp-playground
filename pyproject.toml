@@ -1,5 +1,5 @@
 [project]
-name = "mcp-playground"
+name = "mcp_playground"
 version = "0.1.0"
 description = "Simple client-server MCP playground."
 readme = "README.md"
@@ -12,6 +12,7 @@ dependencies = [
     "mcp>=1.12.1",
     "mypy>=1.17.0",
     "pydantic>=2.11.7",
+    "pytest>=8.4.1",
     "python-dotenv>=1.1.1",
     "requests>=2.32.4",
     "ruff>=0.12.5",
